@@ -20,13 +20,57 @@ export default function Contact({ onSectionChange }: ContactProps) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      newErrors.name = 'El nombre es obligatorio';
+    } else if (formData.name.trim().length < 3) {
+      newErrors.name = 'El nombre debe tener al menos 3 caracteres';
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'El correo es obligatorio';
+    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) {
+      newErrors.email = 'Correo electrónico no válido';
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'El teléfono es obligatorio';
+    } else if (!/^[6789]\d{8}$/.test(formData.phone.trim())) {
+      newErrors.phone = 'El teléfono debe tener 9 dígitos (ej: 678995784)';
+    }
+
+    if (!formData.service) {
+      newErrors.service = 'Selecciona un servicio';
+    }
+
+    if (!formData.message.trim()) {
+      newErrors.message = 'El mensaje es obligatorio';
+    } else if (formData.message.trim().length < 10) {
+      newErrors.message = 'Cuéntanos un poco más (mínimo 10 caracteres)';
+    }
+
+    if (!formData.privacyAccepted) {
+      newErrors.privacyAccepted = 'Debes aceptar la política de privacidad';
+    }
+
+    // Check if cookies checkbox is checked (it was raw HTML before, let's keep it simple or add to state)
+    const cookiesCheckbox = document.getElementById('cookiesAccepted') as HTMLInputElement;
+    if (cookiesCheckbox && !cookiesCheckbox.checked) {
+      newErrors.cookiesAccepted = 'Debes aceptar el uso de cookies';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check legal consents
-    if (!formData.privacyAccepted) {
-      setSubmitStatus('error');
+
+    if (!validateForm()) {
       return;
     }
 
@@ -56,14 +100,14 @@ export default function Contact({ onSectionChange }: ContactProps) {
 
       if (result.success) {
         setSubmitStatus('success');
-        setFormData({ 
-          name: '', 
-          email: '', 
-          phone: '', 
-          service: '', 
-          message: '', 
-          website_url: '', 
-          privacyAccepted: false 
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          service: '',
+          message: '',
+          website_url: '',
+          privacyAccepted: false
         });
       } else {
         setSubmitStatus('error');
@@ -76,10 +120,19 @@ export default function Contact({ onSectionChange }: ContactProps) {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   return (
@@ -115,9 +168,10 @@ export default function Contact({ onSectionChange }: ContactProps) {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                   placeholder="Tu nombre completo"
                 />
+                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
               </div>
 
               <div className="mb-6">
@@ -131,9 +185,10 @@ export default function Contact({ onSectionChange }: ContactProps) {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                   placeholder="tu@email.com"
                 />
+                {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
               </div>
 
               <div className="mb-6">
@@ -147,9 +202,10 @@ export default function Contact({ onSectionChange }: ContactProps) {
                   value={formData.phone}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                   placeholder="678 995 784"
                 />
+                {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
               </div>
 
               <div className="mb-6">
@@ -161,7 +217,7 @@ export default function Contact({ onSectionChange }: ContactProps) {
                   name="service"
                   value={formData.service}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.service ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                 >
                   <option value="">Selecciona un servicio</option>
                   <option value="construccion">Construcción</option>
@@ -173,6 +229,7 @@ export default function Contact({ onSectionChange }: ContactProps) {
                   <option value="reforma">Reforma Integral</option>
                   <option value="mantenimiento">Mantenimiento</option>
                 </select>
+                {errors.service && <p className="text-red-500 text-xs mt-1">{errors.service}</p>}
               </div>
 
               <div className="mb-6">
@@ -185,8 +242,9 @@ export default function Contact({ onSectionChange }: ContactProps) {
                   value={formData.message}
                   onChange={handleChange}
                   rows={5}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.message ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                 ></textarea>
+                {errors.message && <p className="text-red-500 text-xs mt-1">{errors.message}</p>}
               </div>
 
               {/* Legal Checkboxes */}
@@ -216,6 +274,7 @@ export default function Contact({ onSectionChange }: ContactProps) {
                     *
                   </div>
                 </div>
+                {errors.privacyAccepted && <p className="text-red-500 text-xs mt-1 ml-6">{errors.privacyAccepted}</p>}
                 <div className="flex items-start">
                   <input
                     type="checkbox"
@@ -238,6 +297,7 @@ export default function Contact({ onSectionChange }: ContactProps) {
                     *
                   </div>
                 </div>
+                {errors.cookiesAccepted && <p className="text-red-500 text-xs mt-1 ml-6">{errors.cookiesAccepted}</p>}
               </div>
 
               {/* Honeypot field - Hidden from users */}
